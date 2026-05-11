@@ -26,6 +26,9 @@ build/
 Thumbs.db
 Desktop.ini
 
+# --- Database ---
+*.db
+
 # --- Sensitive ---
 *.key
 *.pem
