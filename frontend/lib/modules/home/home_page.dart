@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:xiaojia_ledger/modules/record/add_record_sheet.dart';
 import 'package:xiaojia_ledger/modules/record/records_list_page.dart';
 import 'package:xiaojia_ledger/modules/stats/stats_page.dart';
+import 'package:xiaojia_ledger/modules/savings/savings_page.dart';
 import 'package:xiaojia_ledger/modules/settings/settings_page.dart';
 import 'package:xiaojia_ledger/modules/home/widgets/balance_card.dart';
 import 'package:xiaojia_ledger/modules/home/widgets/recent_records.dart';
@@ -91,6 +92,7 @@ class _HomePageState extends State<HomePage> {
     final pages = <Widget>[
       _buildHomeTab(),
       const StatsPage(),
+      const SavingsPage(),
       const RecordsListPage(),
       const SettingsPage(),
     ];
@@ -108,6 +110,7 @@ class _HomePageState extends State<HomePage> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: '首页'),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart), label: '统计'),
+          BottomNavigationBarItem(icon: Icon(Icons.savings_outlined), activeIcon: Icon(Icons.savings), label: '存钱'),
           BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: '流水'),
           BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: '设置'),
         ],

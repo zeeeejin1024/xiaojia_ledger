@@ -29,7 +29,7 @@ def export_csv(
     records = q.all()
 
     output = io.StringIO()
-    output.write("﻿日期,类型,分类,金额,备注\n")  # BOM for Excel
+    output.write("﻿日期,类型,分类,金额,备注\n")
     for r in records:
         type_name = r.type.value if hasattr(r.type, 'value') else r.type
         cat_name = r.category.name if r.category else ""
@@ -43,4 +43,35 @@ def export_csv(
         iter([csv_content]),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=records.csv"},
+    )
+
+
+@router.get("/json")
+def export_json(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    q = (
+        db.query(Record)
+        .options(joinedload(Record.category))
+        .filter(Record.user_id == user.id)
+        .order_by(Record.date.desc())
+    )
+    records = q.all()
+    data = [
+        {
+            "type": r.type.value if hasattr(r.type, 'value') else r.type,
+            "amount": r.amount,
+            "category": r.category.name if r.category else "",
+            "date": r.date,
+            "note": r.note,
+        }
+        for r in records
+    ]
+    import json
+    json_str = json.dumps(data, ensure_ascii=False, indent=2)
+    return StreamingResponse(
+        iter([json_str]),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=records.json"},
     )
