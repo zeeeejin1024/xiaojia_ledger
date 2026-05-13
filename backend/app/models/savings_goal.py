@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import String, Integer, Float, Date, Boolean, ForeignKey, Enum as SAEnum
+from sqlalchemy import String, Integer, Float, Date, Boolean, ForeignKey, Enum as SAEnum, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -28,7 +28,7 @@ class SavingsGoal(Base):
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
 
-    rules = relationship("AutoSaveRule", back_populates="goal", lazy="joined")
+    rules = relationship("AutoSaveRule", back_populates="goal", lazy="select")
 
 
 class AutoSaveRule(Base):
