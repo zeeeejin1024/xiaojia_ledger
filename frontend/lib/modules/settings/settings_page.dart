@@ -5,6 +5,8 @@ import 'package:xiaojia_ledger/core/constants.dart';
 import 'package:xiaojia_ledger/core/router.dart';
 import 'package:xiaojia_ledger/data/api/api_client.dart';
 import 'package:xiaojia_ledger/data/api/record_api.dart';
+import 'package:xiaojia_ledger/modules/sync/sync_page.dart';
+import 'package:xiaojia_ledger/modules/voice/voice_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -34,6 +36,18 @@ class SettingsPage extends StatelessWidget {
 
         // Export JSON
         _settingItem(Icons.code, '导出 JSON 备份', () => _exportJSON(context)),
+        const SizedBox(height: 8),
+
+        // Bill sync
+        _settingItem(Icons.sync, '账单同步（微信/支付宝）', () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const SyncPage()));
+        }),
+        const SizedBox(height: 8),
+
+        // Voice
+        _settingItem(Icons.mic, '语音记账', () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const VoicePage()));
+        }),
         const SizedBox(height: 8),
 
         // Switch account
