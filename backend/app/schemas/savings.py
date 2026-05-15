@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 from app.models.savings_goal import AutoRuleType
 
@@ -5,16 +6,16 @@ from app.models.savings_goal import AutoRuleType
 class GoalCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     target_amount: float = Field(gt=0)
-    deadline: str | None = None
-    emoji: str | None = "💰"
+    deadline: Optional[str] = None
+    emoji: Optional[str] = "💰"
 
 
 class GoalUpdate(BaseModel):
-    name: str | None = None
-    target_amount: float | None = None
-    deadline: str | None = None
-    emoji: str | None = None
-    is_completed: bool | None = None
+    name: Optional[str] = None
+    target_amount: Optional[float] = None
+    deadline: Optional[str] = None
+    emoji: Optional[str] = None
+    is_completed: Optional[bool] = None
 
 
 class DepositRequest(BaseModel):
@@ -25,4 +26,4 @@ class DepositRequest(BaseModel):
 class RuleCreate(BaseModel):
     goal_id: int
     rule_type: AutoRuleType
-    amount: float | None = None
+    amount: Optional[float] = None

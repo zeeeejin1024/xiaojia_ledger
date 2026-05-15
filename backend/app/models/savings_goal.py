@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import datetime, timezone
 from sqlalchemy import String, Integer, Float, Date, Boolean, ForeignKey, Enum as SAEnum, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -21,8 +22,8 @@ class SavingsGoal(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     target_amount: Mapped[float] = mapped_column(Float, nullable=False)
     current_amount: Mapped[float] = mapped_column(Float, default=0.0)
-    deadline: Mapped[str | None] = mapped_column(String(10), nullable=True)
-    emoji: Mapped[str | None] = mapped_column(String(10), nullable=True, default="💰")
+    deadline: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    emoji: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, default="💰")
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
@@ -40,7 +41,7 @@ class AutoSaveRule(Base):
     rule_type: Mapped[AutoRuleType] = mapped_column(
         SAEnum(AutoRuleType, name="auto_rule_type"), nullable=False
     )
-    amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+    amount: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     goal = relationship("SavingsGoal", back_populates="rules")

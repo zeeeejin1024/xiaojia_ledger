@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
@@ -29,8 +30,8 @@ def _record_out(r: Record) -> dict:
 
 @router.get("")
 def get_records(
-    month: str | None = None,
-    year: str | None = None,
+    month: Optional[str] = None,
+    year: Optional[str] = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):

@@ -1,3 +1,4 @@
+from typing import Dict, List
 from sqlalchemy.orm import Session, joinedload
 from app.models.record import Record
 
@@ -23,7 +24,7 @@ def get_yearly_stats(db: Session, user_id: int, year: str) -> dict:
     )
 
     # 按月分组
-    months_data: dict[str, dict] = {}
+    months_data: Dict[str, dict] = {}
     for r in records:
         m = r.date[:7]
         if m not in months_data:
@@ -57,13 +58,13 @@ def get_yearly_stats(db: Session, user_id: int, year: str) -> dict:
     }
 
 
-def _aggregate(records: list[Record]) -> dict:
+def _aggregate(records: List[Record]) -> dict:
     income = 0.0
     expense = 0.0
     savings = 0.0
-    income_cats: dict[str, float] = {}
-    expense_cats: dict[str, float] = {}
-    savings_cats: dict[str, float] = {}
+    income_cats: Dict[str, float] = {}
+    expense_cats: Dict[str, float] = {}
+    savings_cats: Dict[str, float] = {}
 
     for r in records:
         type_name = r.type.value if hasattr(r.type, 'value') else r.type

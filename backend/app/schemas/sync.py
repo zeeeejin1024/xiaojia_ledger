@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 
 
@@ -10,7 +11,7 @@ class BillConfirmItem(BaseModel):
     date: str
     type: str
     amount: float
-    parent_category: str | None = None
-    child_category: str | None = None
-    note: str | None = None
+    parent_category: Optional[str] = None
+    child_category: Optional[str] = None
+    note: Optional[str] = None
     source: str

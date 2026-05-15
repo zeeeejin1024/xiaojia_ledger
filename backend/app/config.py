@@ -1,3 +1,4 @@
+from typing import List
 import os
 
 
@@ -17,7 +18,7 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 天
 
     # CORS
-    CORS_ORIGINS: list[str] = ["*"]
+    CORS_ORIGINS: List[str] = ["*"]
 
     # 调试
     DEBUG: bool = os.environ.get("DEBUG", "true").lower() == "true"

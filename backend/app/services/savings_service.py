@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.savings_goal import SavingsGoal, AutoSaveRule
 from app.schemas.savings import GoalCreate, GoalUpdate, DepositRequest, RuleCreate
@@ -17,7 +18,7 @@ def create_goal(db: Session, user_id: int, data: GoalCreate) -> SavingsGoal:
     return goal
 
 
-def update_goal(db: Session, goal_id: int, user_id: int, data: GoalUpdate) -> SavingsGoal | None:
+def update_goal(db: Session, goal_id: int, user_id: int, data: GoalUpdate) -> Optional[SavingsGoal]:
     goal = db.query(SavingsGoal).filter(
         SavingsGoal.id == goal_id, SavingsGoal.user_id == user_id
     ).first()
@@ -43,7 +44,7 @@ def delete_goal(db: Session, goal_id: int, user_id: int) -> bool:
     return True
 
 
-def deposit(db: Session, user_id: int, data: DepositRequest) -> SavingsGoal | None:
+def deposit(db: Session, user_id: int, data: DepositRequest) -> Optional[SavingsGoal]:
     goal = db.query(SavingsGoal).filter(
         SavingsGoal.id == data.goal_id, SavingsGoal.user_id == user_id
     ).first()

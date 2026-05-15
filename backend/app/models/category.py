@@ -1,3 +1,4 @@
+from typing import List, Optional
 from sqlalchemy import String, Integer, Boolean, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,20 +17,20 @@ class Category(Base):
     __tablename__ = "categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    parent_id: Mapped[int | None] = mapped_column(
+    parent_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("categories.id"), nullable=True
     )
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     type: Mapped[RecordType] = mapped_column(
         SAEnum(RecordType, name="record_type"), nullable=False
     )
-    emoji: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    emoji: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_system: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 # ===== 种子数据 =====
-SEED_CATEGORIES: list[dict] = [
+SEED_CATEGORIES: List[dict] = [
     # === 支出 ===
     # 餐饮
     {"id": 1, "parent_id": None, "name": "餐饮", "type": "expense", "emoji": "🍽️", "sort_order": 1},

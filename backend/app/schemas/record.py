@@ -1,3 +1,4 @@
+from typing import Optional, Union
 from datetime import date
 from pydantic import BaseModel, Field
 from app.models.category import RecordType
@@ -8,12 +9,12 @@ class RecordCreate(BaseModel):
     amount: float = Field(gt=0)
     category_id: int
     date: str
-    note: str | None = None
+    note: Optional[str] = None
 
 
 class RecordUpdate(BaseModel):
     field: str
-    value: str | float | None
+    value: Union[str, float, None] = None
 
 
 class RecordOut(BaseModel):
@@ -22,9 +23,9 @@ class RecordOut(BaseModel):
     amount: float
     category_id: int
     category_name: str = ""
-    category_emoji: str | None = None
+    category_emoji: Optional[str] = None
     date: str
-    note: str | None = None
+    note: Optional[str] = None
 
     class Config:
         from_attributes = True

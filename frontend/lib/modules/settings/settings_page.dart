@@ -8,59 +8,81 @@ import 'package:xiaojia_ledger/data/api/record_api.dart';
 import 'package:xiaojia_ledger/modules/sync/sync_page.dart';
 import 'package:xiaojia_ledger/modules/voice/voice_page.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  String _theme = 'rice';
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((p) => setState(() => _theme = p.getString('xj_bg') ?? 'rice'));
+  }
+
+  void _setTheme(String t) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString('xj_bg', t);
+    setState(() => _theme = t);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final themeNames = {'rice':'米纸白','warm':'暖橘','matcha':'青瓷','mist':'薄雾','ink':'墨色'};
+    final themeColors = {'rice':const Color(0xFFFDFBF7),'warm':const Color(0xFFFDF2E7),'matcha':const Color(0xFFF3F8F2),'mist':const Color(0xFFF4F2F9),'ink':const Color(0xFF2D2A26)};
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // User info
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: _cardDeco(),
+        Container(padding: const EdgeInsets.all(16), decoration: _card(),
           child: FutureBuilder<String?>(
-            future: SharedPreferences.getInstance()
-                .then((p) => p.getString(AppConstants.usernameKey)),
-            builder: (_, snap) {
-              return Text('当前用户：${snap.data ?? "—"}', style: const TextStyle(fontSize: 14));
-            },
+            future: SharedPreferences.getInstance().then((p) => p.getString(AppConstants.usernameKey)),
+            builder: (_, snap) => Text('当前用户：${snap.data ?? "—"}', style: const TextStyle(fontSize: 14)),
           ),
         ),
         const SizedBox(height: 12),
-
-        // Export CSV
-        _settingItem(Icons.download, '导出 CSV', () => _exportCSV(context)),
+        // Theme
+        Container(padding: const EdgeInsets.all(16), decoration: _card(),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('主题颜色', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+            Wrap(spacing: 10, children: themeNames.entries.map((e) => GestureDetector(
+              onTap: () => _setTheme(e.key),
+              child: Container(width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: themeColors[e.key], borderRadius: BorderRadius.circular(12),
+                  border: _theme == e.key ? Border.all(color: const Color(0xFFD4794A), width: 2.5) : null,
+                ),
+                child: Center(child: Text(e.value.substring(0, 1), style: TextStyle(color: e.key == 'ink' ? Colors.white70 : const Color(0xFFAAA098), fontSize: 14, fontWeight: FontWeight.w600))),
+              ),
+            )).toList()),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        _item(Icons.download, '导出 CSV', () => _exportCSV(context)),
         const SizedBox(height: 8),
 
         // Export JSON
-        _settingItem(Icons.code, '导出 JSON 备份', () => _exportJSON(context)),
+        _item(Icons.code, '导出 JSON 备份', () => _exportJSON(context)),
         const SizedBox(height: 8),
-
         // Bill sync
-        _settingItem(Icons.sync, '账单同步（微信/支付宝）', () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const SyncPage()));
-        }),
+        _item(Icons.sync, '账单同步', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SyncPage()))),
         const SizedBox(height: 8),
-
         // Voice
-        _settingItem(Icons.mic, '语音记账', () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const VoicePage()));
-        }),
+        _item(Icons.mic, '语音记账', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VoicePage()))),
         const SizedBox(height: 8),
-
         // Switch account
-        _settingItem(Icons.swap_horiz, '切换账号', () async {
+        _item(Icons.swap_horiz, '切换账号', () async {
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove(AppConstants.tokenKey);
           await prefs.remove(AppConstants.usernameKey);
           if (context.mounted) Navigator.pushReplacementNamed(context, AppRouter.login);
         }),
         const SizedBox(height: 8),
-
         // Clear data
-        _settingItem(Icons.delete_outline, '清空我的所有数据', () => _clearData(context), isDanger: true),
+        _item(Icons.delete_outline, '清空我的所有数据', () => _clearData(context), isDanger: true),
         const SizedBox(height: 16),
 
         Center(
@@ -151,7 +173,7 @@ class SettingsPage extends StatelessWidget {
     }
   }
 
-  BoxDecoration _cardDeco() {
+  BoxDecoration _card() {
     return BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -161,7 +183,7 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _settingItem(IconData icon, String title, VoidCallback onTap, {bool isDanger = false}) {
+  Widget _item(IconData icon, String title, VoidCallback onTap, {bool isDanger = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

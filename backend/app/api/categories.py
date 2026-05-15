@@ -1,3 +1,4 @@
+from typing import Dict, List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -7,10 +8,10 @@ from app.schemas.common import success
 router = APIRouter(prefix="/categories", tags=["分类"])
 
 
-def _build_tree(categories: list[Category]) -> list[dict]:
+def _build_tree(categories: List[Category]) -> List[dict]:
     """将扁平分类列表转为树形结构。"""
-    by_id: dict[int, dict] = {}
-    roots: list[dict] = []
+    by_id: Dict[int, dict] = {}
+    roots: List[dict] = []
 
     for c in categories:
         node = {

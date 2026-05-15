@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/export", tags=["导出"])
 
 @router.get("/csv")
 def export_csv(
-    month: str | None = Query(None),
+    month: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -80,7 +81,7 @@ def export_json(
 
 @router.get("/pdf")
 def export_pdf(
-    month: str | None = Query(None),
+    month: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):

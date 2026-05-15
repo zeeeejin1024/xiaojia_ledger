@@ -1,3 +1,4 @@
+from typing import Dict, List, Optional, Tuple
 """微信/支付宝账单CSV解析 + 智能分类匹配"""
 
 import re
@@ -6,7 +7,7 @@ import io
 from datetime import datetime
 
 # ===== 商户名 → 分类映射规则 =====
-MERCHANT_RULES: dict[str, tuple[str, str]] = {
+MERCHANT_RULES: Dict[str, Tuple[str, str]] = {
     # 餐饮
     "美团": ("餐饮", "外卖"),
     "饿了么": ("餐饮", "外卖"),
@@ -90,7 +91,7 @@ MERCHANT_RULES: dict[str, tuple[str, str]] = {
 }
 
 
-def match_merchant(merchant: str) -> tuple[str | None, str | None]:
+def match_merchant(merchant: str) -> Tuple[Optional[str], Optional[str]]:
     """根据商户名匹配一级分类和二级分类。"""
     for keyword, (parent, child) in MERCHANT_RULES.items():
         if keyword.lower() in merchant.lower():
@@ -98,7 +99,7 @@ def match_merchant(merchant: str) -> tuple[str | None, str | None]:
     return None, None
 
 
-def parse_csv(content: str, source: str) -> list[dict]:
+def parse_csv(content: str, source: str) -> List[dict]:
     """解析微信/支付宝导出的 CSV 账单。
 
     返回: [{"date": "2026-05-11", "type": "expense",
@@ -133,7 +134,7 @@ def parse_csv(content: str, source: str) -> list[dict]:
         return []
 
 
-def _parse_wechat(rows: list[dict], source: str) -> list[dict]:
+def _parse_wechat(rows: List[dict], source: str) -> List[dict]:
     """解析微信账单 CSV"""
     results = []
     for row in rows:
@@ -167,7 +168,7 @@ def _parse_wechat(rows: list[dict], source: str) -> list[dict]:
     return results
 
 
-def _parse_alipay(rows: list[dict], source: str) -> list[dict]:
+def _parse_alipay(rows: List[dict], source: str) -> List[dict]:
     """解析支付宝账单 CSV"""
     results = []
     for row in rows:
@@ -200,7 +201,7 @@ def _parse_alipay(rows: list[dict], source: str) -> list[dict]:
     return results
 
 
-def _parse_generic(rows: list[dict], source: str) -> list[dict]:
+def _parse_generic(rows: List[dict], source: str) -> List[dict]:
     """通用账单解析"""
     results = []
     for row in rows:

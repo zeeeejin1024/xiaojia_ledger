@@ -1,5 +1,3 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,22 +8,20 @@ from app.models.category import seed_categories
 from app.core.database import Session, engine
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+def _setup():
     init_db()
     db = Session(engine)
     try:
         seed_categories(db)
     finally:
         db.close()
-    yield
 
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
-    lifespan=lifespan,
 )
+app.add_event_handler("startup", _setup)
 
 app.add_middleware(
     CORSMiddleware,

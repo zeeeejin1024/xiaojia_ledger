@@ -24,28 +24,50 @@ class _SavingsPageState extends State<SavingsPage> {
     if (mounted) setState(() => _loading = false);
   }
 
+  DateTime? _goalDeadline;
+
   Future<void> _createGoal() async {
+    _goalDeadline = null;
     final nameCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
-    final deadlineCtrl = TextEditingController();
 
     final result = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('创建存钱目标'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: '目标名称')),
-            TextField(controller: amountCtrl, decoration: const InputDecoration(labelText: '目标金额'), keyboardType: TextInputType.number),
-            TextField(controller: deadlineCtrl, decoration: const InputDecoration(labelText: '截止日期（可选，如 2026-12-31）')),
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) {
+        return AlertDialog(
+          title: const Text('创建存钱目标'),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: '目标名称')),
+              TextField(controller: amountCtrl, decoration: const InputDecoration(labelText: '目标金额'), keyboardType: TextInputType.number),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: ctx, initialDate: DateTime.now().add(const Duration(days: 30)),
+                    firstDate: DateTime.now(), lastDate: DateTime(2030),
+                  );
+                  if (picked != null) setSt(() => _goalDeadline = picked);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  decoration: BoxDecoration(border: Border.all(color: const Color(0xFFE0D8CE)), borderRadius: BorderRadius.circular(8)),
+                  child: Row(children: [
+                    const Icon(Icons.calendar_today, size: 18),
+                    const SizedBox(width: 8),
+                    Text(_goalDeadline != null ? '${_goalDeadline!.year}-${_goalDeadline!.month.toString().padLeft(2,"0")}-${_goalDeadline!.day.toString().padLeft(2,"0")}' : '截止日期（可选）',
+                        style: TextStyle(color: _goalDeadline != null ? Colors.black : const Color(0xFFAAA098))),
+                  ]),
+                ),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('创建')),
           ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('创建')),
-        ],
-      ),
+        );
+      }),
     );
 
     if (result == true) {
@@ -54,7 +76,7 @@ class _SavingsPageState extends State<SavingsPage> {
       if (name.isNotEmpty && amount != null && amount > 0) {
         await SavingsApi.createGoal(
           name, amount,
-          deadline: deadlineCtrl.text.isNotEmpty ? deadlineCtrl.text : null,
+          deadline: _goalDeadline != null ? '${_goalDeadline!.year}-${_goalDeadline!.month.toString().padLeft(2,"0")}-${_goalDeadline!.day.toString().padLeft(2,"0")}' : null,
         );
         _load();
       }
