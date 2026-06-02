@@ -1,5 +1,5 @@
 [Unit]
-Description=小佳记账 API
+Description=小满记账 API
 After=network.target
 
 [Service]

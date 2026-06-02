@@ -38,3 +38,24 @@ def get_categories(db: Session = Depends(get_db)):
     categories = db.query(Category).order_by(Category.sort_order).all()
     tree = _build_tree(categories)
     return success(data=tree)
+
+
+@router.post("")
+def create_category(data: dict, db: Session = Depends(get_db)):
+    """创建自定义分类"""
+    name = data.get('name', '').strip()
+    cat_type = data.get('type', 'expense')
+    emoji = data.get('emoji', '📌')
+    parent_id = data.get('parent_id', None)
+
+    if not name:
+        return {"code": 1, "message": "分类名称不能为空"}
+
+    cat = Category(
+        name=name, type=cat_type, emoji=emoji,
+        parent_id=parent_id, is_system=False, sort_order=999
+    )
+    db.add(cat)
+    db.commit()
+    db.refresh(cat)
+    return success(data={"id": cat.id, "name": cat.name, "emoji": cat.emoji})

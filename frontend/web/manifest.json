@@ -1,6 +1,6 @@
 {
-    "name": "xiaojia_ledger",
-    "short_name": "xiaojia_ledger",
+    "name": "小满记账",
+    "short_name": "小满记账",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

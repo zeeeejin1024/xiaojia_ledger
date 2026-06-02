@@ -3,6 +3,73 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.record import Record
 
 
+def get_weekly_stats(db: Session, user_id: int, start_date: str, end_date: str) -> dict:
+    """获取周统计数据，包括每日明细"""
+    records = (
+        db.query(Record)
+        .options(joinedload(Record.category))
+        .filter(Record.user_id == user_id)
+        .filter(Record.date >= start_date)
+        .filter(Record.date <= end_date)
+        .all()
+    )
+
+    # 按日分组
+    daily_data: Dict[str, dict] = {}
+    for r in records:
+        day = r.date
+        if day not in daily_data:
+            daily_data[day] = {"income": 0.0, "expense": 0.0}
+        type_name = r.type.value if hasattr(r.type, 'value') else r.type
+        if type_name == "income":
+            daily_data[day]["income"] += r.amount
+        elif type_name == "expense":
+            daily_data[day]["expense"] += r.amount
+
+    # 转换为列表
+    daily_list = []
+    for day in sorted(daily_data.keys()):
+        d = daily_data[day]
+        daily_list.append({
+            "date": day,
+            "income": round(d["income"], 2),
+            "expense": round(d["expense"], 2),
+        })
+
+    total_expense = sum(d["expense"] for d in daily_list)
+    total_income = sum(d["income"] for d in daily_list)
+
+    # 上周同期数据
+    from datetime import datetime, timedelta
+    try:
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        last_week_end = start_dt - timedelta(days=1)
+        last_week_start = last_week_end - timedelta(days=6)
+        last_start_str = last_week_start.strftime("%Y-%m-%d")
+        last_end_str = last_week_end.strftime("%Y-%m-%d")
+
+        last_records = (
+            db.query(Record)
+            .filter(Record.user_id == user_id)
+            .filter(Record.date >= last_start_str)
+            .filter(Record.date <= last_end_str)
+            .all()
+        )
+        last_week_expense = sum(r.amount for r in last_records if (r.type.value if hasattr(r.type, 'value') else r.type) == "expense")
+    except:
+        last_week_expense = 0
+
+    return {
+        "daily": daily_list,
+        "total_expense": round(total_expense, 2),
+        "total_income": round(total_income, 2),
+        "last_week_expense": round(last_week_expense, 2),
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+
+
 def get_monthly_stats(db: Session, user_id: int, month: str) -> dict:
     records = (
         db.query(Record)

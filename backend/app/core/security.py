@@ -29,3 +29,15 @@ def decode_access_token(token: str) -> Optional[int]:
         return int(payload["sub"])
     except (JWTError, KeyError, ValueError):
         return None
+
+
+def create_temp_token(user_id: str, expires_minutes: int = 5) -> str:
+    """创建临时 token（忘记密码验证用，5分钟过期）"""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    payload = {"sub": user_id, "exp": expire, "type": "temp"}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def decode_token(token: str) -> dict:
+    """解码 token 返回 payload"""
+    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

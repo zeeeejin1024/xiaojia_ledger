@@ -106,7 +106,7 @@ def export_pdf(
     y = h - 40
 
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(40, y, f"小佳记账 - 账单报表")
+    c.drawString(40, y, f"小满记账 - 账单报表")
     y -= 30
     c.setFont("Helvetica", 10)
     c.drawString(40, y, f"导出时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}  共 {len(records)} 条")

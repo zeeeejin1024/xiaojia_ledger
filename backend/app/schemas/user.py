@@ -1,9 +1,13 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
 class RegisterRequest(BaseModel):
-    username: str = Field(min_length=2, max_length=12)
+    username: Optional[str] = None
+    phone: Optional[str] = None
     password: str = Field(min_length=6)
+    security_question: Optional[str] = None
+    security_answer: Optional[str] = None
 
 
 class LoginRequest(BaseModel):

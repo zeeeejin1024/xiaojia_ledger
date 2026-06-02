@@ -34,3 +34,17 @@ Desktop.ini
 *.pem
 *.crt
 secrets/
+
+# --- Build ---
+*.apk
+*.aab
+*.ipa
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Environment ---
+.env
+.env.local
+.env.*.local

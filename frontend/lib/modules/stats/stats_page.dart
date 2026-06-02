@@ -1,398 +1,341 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:xiaojia_ledger/core/theme.dart';
 import 'package:xiaojia_ledger/data/api/stats_api.dart';
 
 class StatsPage extends StatefulWidget {
   const StatsPage({super.key});
-
   @override
   State<StatsPage> createState() => _StatsPageState();
 }
 
-class _StatsPageState extends State<StatsPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  DateTime _currentMonth = DateTime.now();
-  int _currentYear = DateTime.now().year;
-  Map<String, dynamic>? _monthlyData;
-  Map<String, dynamic>? _yearlyData;
+class _StatsPageState extends State<StatsPage> {
+  DateTime _curMonth = DateTime.now();
+  int _curYear = DateTime.now().year;
+  Map<String, dynamic>? _md, _yd;
   bool _loading = true;
-
-  static const _colors = [
-    Color(0xFFD4794A), Color(0xFF5C8F7A), Color(0xFF7B9E8F),
-    Color(0xFFE8A87C), Color(0xFF8FBBA6), Color(0xFFC4A882),
-    Color(0xFF6B8E7B), Color(0xFFD4C5B9), Color(0xFFA0C4A8),
-    Color(0xFFB8956A), Color(0xFF4A7C6B), Color(0xFFE0C8A0),
-  ];
+  bool _showExpense = true;
+  int _tab = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _loadAll();
-  }
+  void initState() { super.initState(); _load(); }
 
-  String get _monthStr =>
-      '${_currentMonth.year}-${_currentMonth.month.toString().padLeft(2, '0')}';
-
-  Future<void> _loadAll() async {
+  Future<void> _load() async {
     setState(() => _loading = true);
-    final results = await Future.wait([
-      StatsApi.getMonthly(_monthStr),
-      StatsApi.getYearly(_currentYear.toString()),
-    ]);
-    if (mounted) {
-      setState(() {
-        _monthlyData = results[0];
-        _yearlyData = results[1];
-        _loading = false;
-      });
-    }
-  }
-
-  void _shiftMonth(int delta) {
-    setState(() => _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + delta));
-    _loadAll();
-  }
-
-  void _shiftYear(int delta) {
-    setState(() => _currentYear += delta);
-    _loadAll();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+    final r = await Future.wait([StatsApi.getMonthly('${_curMonth.year}-${_curMonth.month.toString().padLeft(2, '0')}'), StatsApi.getYearly(_curYear.toString())]);
+    if (mounted) { _md = r[0]; _yd = r[1]; _loading = false; setState(() {}); }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: const Color(0xFFAAA098),
-          indicatorSize: TabBarIndicatorSize.tab,
-          indicator: BoxDecoration(
-            color: const Color(0xFFD4794A),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          tabs: const [
-            Tab(text: '月度'),
-            Tab(text: '年度'),
-          ],
-        ),
-        Expanded(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : TabBarView(
-                  controller: _tabController,
-                  children: [_buildMonthly(), _buildYearly()],
-                ),
-        ),
-      ],
-    );
+    if (_loading) return Center(child: CircularProgressIndicator(color: AppColors.amber));
+    return SafeArea(child: Column(children: [
+      _tabs(),
+      Expanded(child: AnimatedSwitcher(duration: Duration(milliseconds: 200), child: _tab == 0 ? _monthly() : _yearly())),
+    ]));
   }
 
-  // ========== Monthly ==========
-  Widget _buildMonthly() {
-    final d = _monthlyData;
-    if (d == null) return const SizedBox();
-    final income = (d['income'] as num?)?.toDouble() ?? 0;
-    final expense = (d['expense'] as num?)?.toDouble() ?? 0;
-    final savings = (d['savings'] as num?)?.toDouble() ?? 0;
-    final balance = (d['balance'] as num?)?.toDouble() ?? 0;
-    final incomeCats = (d['income_cats'] as Map<String, dynamic>?) ?? {};
-    final expenseCats = (d['expense_cats'] as Map<String, dynamic>?) ?? {};
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Month nav
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(onPressed: () => _shiftMonth(-1), icon: const Icon(Icons.chevron_left)),
-            Text(DateFormat('yyyy年M月').format(_currentMonth),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            IconButton(onPressed: () => _shiftMonth(1), icon: const Icon(Icons.chevron_right)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        // Summary
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: _cardDeco(),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _summaryItem('收入', income, const Color(0xFF5C8F7A)),
-              _summaryItem('支出', expense, const Color(0xFF3D362F)),
-              _summaryItem('结余', balance, const Color(0xFFD4794A)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Bar chart
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: _cardDeco(),
-          child: Column(
-            children: [
-              _buildBar('收入', income, max(income, max(expense, savings)), const Color(0xFF5C8F7A)),
-              const SizedBox(height: 10),
-              _buildBar('支出', expense, max(income, max(expense, savings)), const Color(0xFFAAA098)),
-              const SizedBox(height: 10),
-              _buildBar('存钱', savings, max(income, max(expense, savings)), const Color(0xFFD4794A)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Pie charts
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _buildPie('收入分布', incomeCats, income)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildPie('支出分布', expenseCats, expense)),
-          ],
-        ),
-      ],
-    );
+  Widget _tabs() {
+    return Padding(padding: EdgeInsets.fromLTRB(20, 12, 20, 0), child: Row(children: [
+      Expanded(child: _tb('本月', 0)), SizedBox(width: 8), Expanded(child: _tb('年度', 1)),
+    ]));
   }
 
-  Widget _buildBar(String label, double value, double maxVal, Color color) {
-    final ratio = maxVal > 0 ? value / maxVal : 0.0;
-    return Row(
-      children: [
-        SizedBox(width: 36, child: Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFFAAA098)))),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Container(
-            height: 28,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F1EB),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: ratio,
-              child: Container(
-                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 70,
-          child: Text('¥${value.toStringAsFixed(2)}',
-              textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w500)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPie(String title, Map<String, dynamic> data, double total) {
-    final entries = data.entries.toList()
-      ..sort((a, b) => (b.value as num).compareTo(a.value));
-    if (entries.isEmpty || total == 0) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: _cardDeco(),
-        child: Column(children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-          const SizedBox(height: 12),
-          const Icon(Icons.pie_chart_outline, size: 80, color: Color(0xFFE0D8CE)),
-          const Text('暂无数据', style: TextStyle(color: Color(0xFFAAA098), fontSize: 12)),
-        ]),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDeco(),
-      child: Column(
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, letterSpacing: 2)),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 90,
-            width: 90,
-            child: PieChart(
-              PieChartData(
-                sectionsSpace: 1,
-                centerSpaceRadius: 25,
-                sections: entries.map((e) {
-                  final i = entries.indexOf(e);
-                  final pct = total > 0 ? ((e.value as num).toDouble() / total * 100) : 0.0;
-                  return PieChartSectionData(
-                    value: pct,
-                    color: _colors[i % _colors.length],
-                    showTitle: false,
-                    radius: 40,
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...entries.take(4).map((e) {
-            final i = entries.indexOf(e);
-            final pct = total > 0 ? ((e.value as num).toDouble() / total * 100) : 0.0;
-            return Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Row(
-                children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(color: _colors[i % _colors.length], shape: BoxShape.circle)),
-                  const SizedBox(width: 6),
-                  Expanded(child: Text(e.key, style: const TextStyle(fontSize: 12))),
-                  Text('¥${((e.value as num).toDouble()).toStringAsFixed(0)}',
-                      style: const TextStyle(fontSize: 12)),
-                  const SizedBox(width: 4),
-                  Text('${pct.toStringAsFixed(1)}%',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFFAAA098))),
-                ],
-              ),
-            );
-          }),
-        ],
+  Widget _tb(String t, int i) {
+    final on = _tab == i;
+    return GestureDetector(
+      onTap: () { HapticFeedback.lightImpact(); setState(() => _tab = i); },
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 10), alignment: Alignment.center,
+        decoration: BoxDecoration(color: on ? AppColors.accent.withAlpha(20) : AppColors.card, borderRadius: BorderRadius.circular(12), border: on ? Border.all(color: AppColors.accent.withAlpha(60)) : null),
+        child: Text(t, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: on ? AppColors.accentDark : AppColors.gray)),
       ),
     );
   }
 
-  // ========== Yearly ==========
-  Widget _buildYearly() {
-    final d = _yearlyData;
-    if (d == null) return const SizedBox();
-    final months = (d['months'] as List<dynamic>?) ?? [];
-    final totalIncome = (d['total_income'] as num?)?.toDouble() ?? 0;
-    final totalExpense = (d['total_expense'] as num?)?.toDouble() ?? 0;
-    final totalBalance = (d['total_balance'] as num?)?.toDouble() ?? 0;
+  // ==================== 月度 ====================
+  Widget _monthly() {
+    final d = _md;
+    if (d == null) return _empty();
+    final inc = (d['income'] as num?)?.toDouble() ?? 0;
+    final exp = (d['expense'] as num?)?.toDouble() ?? 0;
+    final bal = (d['balance'] as num?)?.toDouble() ?? 0;
+    final ec = (d['expense_cats'] as Map<String, dynamic>?) ?? {};
+    final ic = (d['income_cats'] as Map<String, dynamic>?) ?? {};
+    final cats = _showExpense ? ec : ic;
+    final total = _showExpense ? exp : inc;
+    final sorted = cats.entries.toList()..sort((a, b) => (b.value as num).compareTo(a.value));
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(onPressed: () => _shiftYear(-1), icon: const Icon(Icons.chevron_left)),
-            Text('$_currentYear年', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            IconButton(onPressed: () => _shiftYear(1), icon: const Icon(Icons.chevron_right)),
-          ],
+    final now = DateTime.now();
+    final canFwd = _curMonth.year < now.year || (_curMonth.year == now.year && _curMonth.month < now.month);
+
+    return ListView(padding: EdgeInsets.fromLTRB(20, 8, 20, 30), children: [
+      // 月份切换
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        _arrow(Icons.chevron_left, () { _curMonth = DateTime(_curMonth.year, _curMonth.month - 1); _load(); }),
+        Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text(DateFormat('yyyy年M月').format(_curMonth), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.ink))),
+        _arrow(Icons.chevron_right, canFwd ? () { _curMonth = DateTime(_curMonth.year, _curMonth.month + 1); _load(); } : null, dimmed: !canFwd),
+      ]),
+      SizedBox(height: 24),
+
+      // Hero 总金额
+      Center(child: Column(children: [
+        Text('¥${_fmtNum(total)}', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.ink, letterSpacing: -1.5, height: 1.1)),
+        SizedBox(height: 4),
+        Text(_showExpense ? '总支出' : '总收入', style: TextStyle(fontSize: 14, color: AppColors.gray)),
+      ])),
+      SizedBox(height: 20),
+
+      // 收支小计
+      Container(
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+          _miniStat('收入', inc, AppColors.success),
+          _miniStat('支出', exp, AppColors.danger),
+          _miniStat('结余', bal, AppColors.amber),
+        ]),
+      ),
+      SizedBox(height: 20),
+
+      // 收支切换
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        _chip('支出', _showExpense, () => setState(() => _showExpense = true)),
+        SizedBox(width: 8),
+        _chip('收入', !_showExpense, () => setState(() => _showExpense = false)),
+      ]),
+      SizedBox(height: 20),
+
+      // 环形图
+      if (sorted.isNotEmpty && total > 0) ...[
+        SizedBox(
+          height: 200,
+          child: Stack(alignment: Alignment.center, children: [
+            PieChart(PieChartData(
+              sectionsSpace: 2,
+              centerSpaceRadius: 55,
+              sections: sorted.take(6).toList().asMap().entries.map((e) {
+                final v = (e.value.value as num).toDouble();
+                return PieChartSectionData(value: v, color: AppColors.chartColor(e.key), radius: 18, title: '', showTitle: false);
+              }).toList(),
+            )),
+            Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('¥${_fmtNum(total)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.ink)),
+              Text(_showExpense ? '总支出' : '总收入', style: TextStyle(fontSize: 12, color: AppColors.gray)),
+            ]),
+          ]),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
+      ],
+
+      // 分类列表
+      if (sorted.isNotEmpty && total > 0) ...[
+        Text(_showExpense ? '支出构成' : '收入构成', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.ink)),
+        SizedBox(height: 12),
+        ...sorted.take(8).toList().asMap().entries.map((e) {
+          final v = (e.value.value as num).toDouble();
+          final pct = total > 0 ? v / total : 0.0;
+          final color = AppColors.chartColor(e.key);
+          return Padding(padding: EdgeInsets.only(bottom: 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(width: 36, height: 36, decoration: BoxDecoration(shape: BoxShape.circle, color: color.withAlpha(25)), child: Center(child: Text(e.value.key.isNotEmpty ? e.value.key[0] : '?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color)))),
+              SizedBox(width: 12),
+              Expanded(child: Text(e.value.key, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.ink))),
+              Text('¥${_fmtNum(v)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.ink)),
+              SizedBox(width: 8),
+              Text('${(pct * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 12, color: AppColors.gray)),
+            ]),
+            SizedBox(height: 8),
+            ClipRRect(borderRadius: BorderRadius.circular(3), child: TweenAnimationBuilder<double>(tween: Tween(begin: 0, end: pct), duration: AppAnimations.normal, curve: Curves.easeOutCubic, builder: (_, p, __) => LinearProgressIndicator(value: p, minHeight: 4, backgroundColor: color.withAlpha(15), valueColor: AlwaysStoppedAnimation(color)))),
+          ]));
+        }),
+      ],
+    ]);
+  }
+
+  Widget _chip(String label, bool active, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: () { HapticFeedback.lightImpact(); onTap(); },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+        decoration: BoxDecoration(color: active ? AppColors.accent.withAlpha(25) : AppColors.card, borderRadius: BorderRadius.circular(16), border: active ? Border.all(color: AppColors.accent.withAlpha(50)) : null),
+        child: Text(label, style: TextStyle(fontSize: 12, fontWeight: active ? FontWeight.w600 : FontWeight.w400, color: active ? AppColors.accentDark : AppColors.gray)),
+      ),
+    );
+  }
+
+  Widget _miniStat(String label, double v, Color c) {
+    return Column(children: [Text('¥${_fmtNum(v)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c)), SizedBox(height: 3), Text(label, style: TextStyle(fontSize: 12, color: AppColors.gray))]);
+  }
+
+  Widget _arrow(IconData icon, VoidCallback? onTap, {bool dimmed = false}) {
+    return GestureDetector(
+      onTap: onTap != null ? () { HapticFeedback.lightImpact(); onTap(); } : null,
+      child: Container(padding: EdgeInsets.all(12), constraints: BoxConstraints(minWidth: 44, minHeight: 44), decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.card), child: Icon(icon, color: dimmed ? AppColors.gray.withAlpha(80) : AppColors.ink, size: 20)),
+    );
+  }
+
+  // ==================== 年度（微信风格）====================
+  Widget _yearly() {
+    final d = _yd; if (d == null) return _empty();
+    final ti = (d['total_income'] as num?)?.toDouble() ?? 0;
+    final te = (d['total_expense'] as num?)?.toDouble() ?? 0;
+    final months = (d['months'] as List<dynamic>?) ?? [];
+
+    return ListView(padding: EdgeInsets.fromLTRB(20, 8, 20, 30), children: [
+      // 年份切换
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        _arrow(Icons.chevron_left, () { _curYear--; _load(); }),
+        Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('$_curYear年', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.ink))),
+        _arrow(Icons.chevron_right, _curYear <= DateTime.now().year ? () { _curYear++; _load(); } : null, dimmed: _curYear > DateTime.now().year),
+      ]),
+      SizedBox(height: 24),
+
+      // Hero 总金额
+      Center(child: Column(children: [
+        Text('¥${_fmtNum(ti + te)}', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.ink, letterSpacing: -1.5, height: 1.1)),
+        SizedBox(height: 4),
+        Text('年度收支', style: TextStyle(fontSize: 14, color: AppColors.gray)),
+      ])),
+      SizedBox(height: 20),
+
+      // 收支概览卡片
+      Container(
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+          _miniStat('收入', ti, AppColors.success),
+          _miniStat('支出', te, AppColors.danger),
+          _miniStat('结余', ti - te, AppColors.amber),
+        ]),
+      ),
+
+      if (months.isNotEmpty) ...[
+        SizedBox(height: 24),
+        Text('月度趋势', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.ink)),
+        SizedBox(height: 12),
+        // 白色背景卡片
         Container(
-          padding: const EdgeInsets.all(16),
-          decoration: _cardDeco(),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _summaryItem('年收入', totalIncome, const Color(0xFF5C8F7A)),
-              _summaryItem('年支出', totalExpense, const Color(0xFF3D362F)),
-              _summaryItem('年结余', totalBalance, const Color(0xFFD4794A)),
-            ],
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: AppColors.ink.withAlpha(10), blurRadius: 12, offset: Offset(0, 4))],
           ),
-        ),
-        const SizedBox(height: 16),
-        if (months.isEmpty)
-          const Center(child: Text('暂无年度数据', style: TextStyle(color: Color(0xFFAAA098)))),
-        if (months.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: _cardDeco(),
-            child: SizedBox(
+          child: Column(children: [
+            // 收入/支出图例
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(2))), SizedBox(width: 4), Text('收入', style: TextStyle(fontSize: 12, color: AppColors.gray)),
+              SizedBox(width: 16),
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: AppColors.danger, borderRadius: BorderRadius.circular(2))), SizedBox(width: 4), Text('支出', style: TextStyle(fontSize: 12, color: AppColors.gray)),
+            ]),
+            SizedBox(height: 12),
+            // 柱状图
+            SizedBox(
               height: 200,
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
-                  maxY: months.fold(0.0, (max, m) {
-                    final income = (m['income'] as num?)?.toDouble() ?? 0;
-                    final expense = (m['expense'] as num?)?.toDouble() ?? 0;
-                    return max > (income + expense) ? max : (income + expense);
-                  }) * 1.2,
-                  barGroups: months.map((m) {
-                    final idx = months.indexOf(m);
-                    final income = (m['income'] as num?)?.toDouble() ?? 0;
-                    final expense = (m['expense'] as num?)?.toDouble() ?? 0;
-                    final label = (m['month'] as String).substring(5);
-                    return BarChartGroupData(x: idx, barRods: [
-                      BarChartRodData(toY: income, color: const Color(0xFF5C8F7A), width: 10, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
-                      BarChartRodData(toY: expense, color: const Color(0xFFAAA098), width: 10, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
-                    ]);
-                  }).toList(),
+                  maxY: _calculateMaxY(months),
+                  barGroups: _buildBarGroups(months),
+                  barTouchData: BarTouchData(
+                    enabled: true,
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        final label = rodIndex == 0 ? '收入' : '支出';
+                        final value = rod.toY.toInt();
+                        return BarTooltipItem(
+                          '$label ¥$value',
+                          TextStyle(color: AppColors.card, fontSize: 12, fontWeight: FontWeight.w600),
+                        );
+                      },
+                    ),
+                    touchCallback: (FlTouchEvent event, BarTouchResponse? response) {
+                      if (event is FlTapUpEvent || event is FlLongPressEnd) {
+                        HapticFeedback.lightImpact();
+                      }
+                    },
+                  ),
                   titlesData: FlTitlesData(
+                    show: true,
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final i = value.toInt();
-                          if (i >= 0 && i < months.length) {
-                            final label = (months[i]['month'] as String).substring(5);
-                            return Text(label, style: const TextStyle(fontSize: 11));
+                        reservedSize: 24,
+                        getTitlesWidget: (v, _) {
+                          final idx = v.toInt();
+                          if (idx >= 0 && idx < months.length) {
+                            final mStr = months[idx]['month']?.toString() ?? '';
+                            final monthNum = mStr.length >= 7 ? int.tryParse(mStr.substring(5, 7)) : (idx + 1);
+                            return Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Text('${monthNum ?? idx + 1}月', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.gray)),
+                            );
                           }
-                          return const Text('');
+                          return Text('');
                         },
                       ),
                     ),
-                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
-                  gridData: const FlGridData(show: false),
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: _calculateMaxY(months) / 4,
+                    getDrawingHorizontalLine: (v) => FlLine(color: AppColors.divider, strokeWidth: 0.5),
+                  ),
                   borderData: FlBorderData(show: false),
                 ),
               ),
             ),
+          ]),
+        ),
+      ],
+    ]);
+  }
+
+  double _calculateMaxY(List<dynamic> months) {
+    double maxY = 0;
+    for (final m in months) {
+      final income = ((m['income'] ?? 0) as num).toDouble();
+      final expense = ((m['expense'] ?? 0) as num).toDouble();
+      final max = income > expense ? income : expense;
+      if (max > maxY) maxY = max;
+    }
+    return maxY * 1.25;
+  }
+
+  List<BarChartGroupData> _buildBarGroups(List<dynamic> months) {
+    return months.asMap().entries.map((e) {
+      final i = e.key;
+      final m = e.value;
+      final income = ((m['income'] ?? 0) as num).toDouble();
+      final expense = ((m['expense'] ?? 0) as num).toDouble();
+      return BarChartGroupData(
+        x: i,
+        barRods: [
+          BarChartRodData(
+            toY: income,
+            width: 10,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+            color: AppColors.success,
           ),
-        // Legend
-        if (months.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _legendDot(const Color(0xFF5C8F7A), '收入'),
-              const SizedBox(width: 16),
-              _legendDot(const Color(0xFFAAA098), '支出'),
-            ],
+          BarChartRodData(
+            toY: expense,
+            width: 10,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+            color: AppColors.danger,
           ),
         ],
-      ],
-    );
+      );
+    }).toList();
   }
 
-  Widget _legendDot(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFFAAA098))),
-      ],
-    );
-  }
+  Widget _empty() => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.bar_chart_rounded, size: 48, color: AppColors.gray.withAlpha(80)), SizedBox(height: 16), Text('暂无数据', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.ink)), SizedBox(height: 6), Text('记一笔后这里会出现统计图表', style: TextStyle(fontSize: 12, color: AppColors.gray))]));
 
-  Widget _summaryItem(String label, double value, Color color) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFFAAA098))),
-        const SizedBox(height: 4),
-        Text('¥${value.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: color)),
-      ],
-    );
-  }
-
-  BoxDecoration _cardDeco() {
-    return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [BoxShadow(color: const Color(0xFF3D362F).withAlpha(10), blurRadius: 16, offset: const Offset(0, 2))],
-    );
-  }
+  String _fmtNum(double v) => v.toStringAsFixed(2);
 }

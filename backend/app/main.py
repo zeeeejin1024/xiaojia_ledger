@@ -5,6 +5,9 @@ from app.config import settings
 from app.core.database import init_db
 from app.api.router import api_router
 from app.models.category import seed_categories
+from app.models.user_setting import UserSetting
+from app.models.wallet_budget import WalletBudget
+from app.models.deal import Deal
 from app.core.database import Session, engine
 
 

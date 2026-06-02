@@ -23,9 +23,22 @@ class SavingsApi {
     return res.data['code'] == 0;
   }
 
-  static Future<Map<String, dynamic>?> deposit(int goalId, double amount) async {
+  static Future<bool> updateGoal(int id, String name, double target) async {
+    final res = await _client.put('/savings/goals/$id', data: {
+      'name': name, 'target_amount': target,
+    });
+    return res.data['code'] == 0;
+  }
+
+  static Future<List<dynamic>> getGoalHistory(int goalId) async {
+    final res = await _client.get('/savings/goals/$goalId/history');
+    if (res.data['code'] == 0) return res.data['data'] ?? [];
+    return [];
+  }
+
+  static Future<Map<String, dynamic>?> deposit(int goalId, double amount, {String? note}) async {
     final res = await _client.post('/savings/deposit', data: {
-      'goal_id': goalId, 'amount': amount,
+      'goal_id': goalId, 'amount': amount, if (note != null) 'note': note,
     });
     if (res.data['code'] == 0) return res.data['data'];
     return null;

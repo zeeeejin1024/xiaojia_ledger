@@ -3,8 +3,8 @@ import os
 
 
 class Settings:
-    APP_NAME: str = "小佳记账 API"
-    VERSION: str = "1.0.0"
+    APP_NAME: str = "小满记账 API"
+    VERSION: str = "5.5.0"
 
     # 数据库 — 开发环境默认用 SQLite，生产环境用 MySQL
     DATABASE_URL: str = os.environ.get(

@@ -14,4 +14,10 @@ class StatsApi {
     if (res.data['code'] == 0) return res.data['data'];
     return null;
   }
+
+  static Future<Map<String, dynamic>?> getWeekly(String start, String end) async {
+    final res = await _client.get('/stats/weekly', queryParameters: {'start': start, 'end': end});
+    if (res.data['code'] == 0) return res.data['data'];
+    return null;
+  }
 }

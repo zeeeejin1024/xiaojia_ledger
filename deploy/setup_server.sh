@@ -1,9 +1,9 @@
 #!/bin/bash
-# 小佳记账 — 服务器一键部署脚本
+# 小满记账 — 服务器一键部署脚本
 # 在宝塔面板 → 终端 中粘贴运行
 
 set -e
-echo "=== 小佳记账 服务端部署 ==="
+echo "=== 小满记账 服务端部署 ==="
 
 cd /root
 
@@ -27,7 +27,7 @@ kill $(lsof -t -i:8000) 2>/dev/null || true
 # 5. 创建 systemd 服务
 cat > /etc/systemd/system/xiaojia.service << 'SERVICE'
 [Unit]
-Description=小佳记账 API
+Description=小满记账 API
 After=network.target
 
 [Service]
